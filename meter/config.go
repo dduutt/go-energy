@@ -54,18 +54,11 @@ func FromExcel(file string) ([]*Energy, error) {
 			Size:        l,
 			DataType:    row[10],
 			Value:       0,
+			Bytes:       make([]byte, l),
 		}
 		meters = append(meters, m)
 
 	}
 	return meters, nil
 
-}
-
-func CodeMap(meters []*Energy) map[string]*Energy {
-	m := make(map[string]*Energy)
-	for _, e := range meters {
-		m[e.Code] = e
-	}
-	return m
 }

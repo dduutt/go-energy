@@ -16,8 +16,9 @@ type S7 struct {
 	Size    int
 	Area    string
 	AreaNo  int
-	Byte    []byte
+	Bytes   []byte
 	h       gos7.ClientHandler
+	Error   error
 }
 
 type SyncS7Group struct {
@@ -28,13 +29,10 @@ type SyncS7Group struct {
 	Retry      int
 	RetryDelay time.Duration
 	Timeout    time.Duration
+	Error      error
 }
 
-func (s *SyncS7Group) Read(rc chan *GroupSyncReadResult) {
-
-	gsrr := &GroupSyncReadResult{
-		Results: make([]*SyncReadResult, 0),
-	}
+func (s *SyncS7Group) Read() {
 
 	h := gos7.NewTCPClientHandler(s.Addr, s.Rack, s.Slot)
 	h.Timeout = s.Timeout
@@ -47,21 +45,15 @@ func (s *SyncS7Group) Read(rc chan *GroupSyncReadResult) {
 		time.Sleep(s.RetryDelay)
 	}
 	if timeoutError != nil {
-		gsrr.Error = fmt.Errorf("[timeout err]%s:\n%v", s.Addr, timeoutError)
-		rc <- gsrr
+		s.Error = timeoutError
 		return
 	}
 	defer h.Close()
 	for _, s7 := range s.S7s {
 		s7.h = h
-		srr := &SyncReadResult{ID: s7.Code, Result: s7.Byte}
-		err := s7.Read()
-		srr.Error = err
-		gsrr.Results = append(gsrr.Results, srr)
+		s7.Error = s7.Read()
 		time.Sleep(s.RetryDelay)
 	}
-	rc <- gsrr
-
 }
 
 func (s *S7) Read() error {
@@ -94,5 +86,5 @@ func (s *S7) ParseAddress() error {
 
 func (s *S7) ReadDB() error {
 	c := gos7.NewClient(s.h)
-	return c.AGReadDB(s.AreaNo, s.Start, s.Size, s.Byte)
+	return c.AGReadDB(s.AreaNo, s.Start, s.Size, s.Bytes)
 }

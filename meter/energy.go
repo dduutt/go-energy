@@ -18,21 +18,21 @@ const (
 )
 
 type Energy struct {
-	Code        string
-	WorkShop    string
-	Room        string
-	Name        string
-	Protocol    string
-	IP          string
-	Port        int
-	SlaveOrArea string
-	Start       int
-	Size        int
-	DataType    string
-	IsBigEndian bool // 添加字节序配置
-	Bytes       []byte
-	Value       float64
-	BigEndian   bool
+	Code           string
+	WorkShop       string
+	Room           string
+	Name           string
+	Protocol       string
+	IP             string
+	Port           int
+	SlaveOrArea    string
+	Start          int
+	Size           int
+	DataType       string
+	IsLittleEndian bool // 添加字节序配置
+	Bytes          []byte
+	Value          float64
+	Error          error
 }
 
 type AddrGroup struct {
@@ -42,9 +42,10 @@ type AddrGroup struct {
 	Retry      int
 	RetryDelay time.Duration
 	Timeout    time.Duration
+	Error      error
 }
 
-func (a *AddrGroup) Read(rc chan *client.GroupSyncReadResult) {
+func (a *AddrGroup) Read() {
 	var g client.GroupSyncReader
 	switch a.Protocol {
 	case "modbus_tcp":
@@ -53,6 +54,7 @@ func (a *AddrGroup) Read(rc chan *client.GroupSyncReadResult) {
 			Retry:      a.Retry,
 			RetryDelay: a.RetryDelay,
 			Timeout:    a.Timeout,
+			Error:      a.Error,
 		}
 		for _, m := range a.Meters {
 			slaveId, err := strconv.ParseUint(m.SlaveOrArea, 10, 8)
@@ -64,6 +66,8 @@ func (a *AddrGroup) Read(rc chan *client.GroupSyncReadResult) {
 				Start:   uint16(m.Start),
 				Size:    uint16(m.Size),
 				SlaveId: byte(slaveId),
+				Bytes:   m.Bytes,
+				Error:   m.Error,
 			}
 			mbg.ModbusTCPs = append(mbg.ModbusTCPs, mbc)
 
@@ -78,6 +82,7 @@ func (a *AddrGroup) Read(rc chan *client.GroupSyncReadResult) {
 			Retry:      a.Retry,
 			RetryDelay: a.RetryDelay,
 			Timeout:    a.Timeout,
+			Error:      a.Error,
 		}
 		for _, m := range a.Meters {
 			s7 := &client.S7{
@@ -85,17 +90,17 @@ func (a *AddrGroup) Read(rc chan *client.GroupSyncReadResult) {
 				Address: m.SlaveOrArea,
 				Size:    m.Size,
 				Start:   m.Start,
-				Byte:    make([]byte, m.Size),
+				Bytes:   m.Bytes,
+				Error:   m.Error,
 			}
 			s7g.S7s = append(s7g.S7s, s7)
 		}
 		g = s7g
 	default:
-		err := fmt.Errorf("protocol %s not support", a.Protocol)
-		rc <- &client.GroupSyncReadResult{Error: err}
+		a.Error = fmt.Errorf("protocol %s not support", a.Protocol)
 		return
 	}
-	g.Read(rc)
+	g.Read()
 }
 
 func GroupByAddrFromExcel(meters []*Energy) map[string]*AddrGroup {
@@ -111,6 +116,7 @@ func GroupByAddrFromExcel(meters []*Energy) map[string]*AddrGroup {
 				Timeout:    TIMEOUT,
 				Retry:      RETRY,
 				RetryDelay: RETRY_DELAY,
+				Error:      m.Error,
 			}
 		}
 		g[addr].Meters = append(g[addr].Meters, m)
@@ -174,7 +180,7 @@ func (e *Energy) Read(v any, b []byte) error {
 
 	r := bytes.NewReader(b)
 	order := binary.ByteOrder(binary.BigEndian)
-	if !e.BigEndian {
+	if e.IsLittleEndian {
 		order = binary.LittleEndian
 	}
 	return binary.Read(r, order, v)
