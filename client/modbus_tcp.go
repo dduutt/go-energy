@@ -13,7 +13,7 @@ type ModbusTCP struct {
 	Bytes []byte
 	// SlaveId   hex
 	SlaveId byte
-	Error   error
+	Error   *string
 }
 
 type SyncModbusTCPGroup struct {
@@ -22,7 +22,7 @@ type SyncModbusTCPGroup struct {
 	Retry      int
 	RetryDelay time.Duration
 	Timeout    time.Duration
-	Error      error
+	Error      *string
 }
 
 func (s *SyncModbusTCPGroup) Read() {
@@ -38,7 +38,7 @@ func (s *SyncModbusTCPGroup) Read() {
 		time.Sleep(s.RetryDelay)
 	}
 	if timeoutError != nil {
-		s.Error = timeoutError
+		*s.Error = timeoutError.Error()
 		return
 	}
 
@@ -47,7 +47,9 @@ func (s *SyncModbusTCPGroup) Read() {
 		h.SlaveId = mb.SlaveId
 		c := modbus.NewClient(h)
 		b, err := c.ReadHoldingRegisters(mb.Start, mb.Size)
-		mb.Error = err
+		if err != nil {
+			*mb.Error = err.Error()
+		}
 		copy(mb.Bytes, b)
 		time.Sleep(s.RetryDelay)
 	}

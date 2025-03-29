@@ -41,6 +41,7 @@ func FromExcel(file string) ([]*Energy, error) {
 		if err != nil {
 			return nil, fmt.Errorf("第%d行地址错误:%v", i+2, row[8])
 		}
+		e := ""
 		m := &Energy{
 			Code:        row[0],
 			WorkShop:    row[1],
@@ -55,6 +56,7 @@ func FromExcel(file string) ([]*Energy, error) {
 			DataType:    row[10],
 			Value:       0,
 			Bytes:       make([]byte, l),
+			Error:       &e,
 		}
 		meters = append(meters, m)
 

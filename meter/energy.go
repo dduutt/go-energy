@@ -32,7 +32,7 @@ type Energy struct {
 	IsLittleEndian bool // 添加字节序配置
 	Bytes          []byte
 	Value          float64
-	Error          error
+	Error          *string
 }
 
 type AddrGroup struct {
@@ -42,7 +42,7 @@ type AddrGroup struct {
 	Retry      int
 	RetryDelay time.Duration
 	Timeout    time.Duration
-	Error      error
+	Error      *string
 }
 
 func (a *AddrGroup) Read() {
@@ -97,7 +97,7 @@ func (a *AddrGroup) Read() {
 		}
 		g = s7g
 	default:
-		a.Error = fmt.Errorf("protocol %s not support", a.Protocol)
+		*a.Error = fmt.Sprintf("protocol %s not support", a.Protocol)
 		return
 	}
 	g.Read()

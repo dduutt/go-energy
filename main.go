@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"math"
 	"sync"
 	"time"
 
@@ -20,12 +19,12 @@ func main() {
 	rc := SyncRead(g)
 
 	for mag := range rc {
-		if mag.Error != nil {
-			fmt.Println(mag.Error, mag.Addr)
+		if *mag.Error != "" {
+			fmt.Println(*mag.Error, mag.Addr)
 			continue
 		}
 		for _, m := range mag.Meters {
-			if err := m.Error; err != nil {
+			if err := *m.Error; err != "" {
 				fmt.Println(m.Code, err)
 				continue
 			}
@@ -34,7 +33,7 @@ func main() {
 				fmt.Println(m.Code, err)
 				continue
 			}
-			fmt.Println(m.Code, m.Bytes, math.Round(m.Value*100)/1000)
+			// fmt.Println(m.Code, m.Bytes, math.Round(m.Value*100)/1000)
 		}
 
 	}

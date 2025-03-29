@@ -18,7 +18,7 @@ type S7 struct {
 	AreaNo  int
 	Bytes   []byte
 	h       gos7.ClientHandler
-	Error   error
+	Error   *string
 }
 
 type SyncS7Group struct {
@@ -29,7 +29,7 @@ type SyncS7Group struct {
 	Retry      int
 	RetryDelay time.Duration
 	Timeout    time.Duration
-	Error      error
+	Error      *string
 }
 
 func (s *SyncS7Group) Read() {
@@ -45,13 +45,16 @@ func (s *SyncS7Group) Read() {
 		time.Sleep(s.RetryDelay)
 	}
 	if timeoutError != nil {
-		s.Error = timeoutError
+		*s.Error = timeoutError.Error()
 		return
 	}
 	defer h.Close()
 	for _, s7 := range s.S7s {
 		s7.h = h
-		s7.Error = s7.Read()
+		err := s7.Read()
+		if err != nil {
+			*s7.Error = err.Error()
+		}
 		time.Sleep(s.RetryDelay)
 	}
 }
