@@ -1,0 +1,103 @@
+# Go 项目通用忽略规则
+*.exe
+*.test
+*.out
+*.log
+*.tmp
+*.swp
+*.bak
+*.cache
+*.class
+
+# 编译生成的文件
+bin/
+obj/
+dist/
+pkg/
+*.so
+*.a
+*.o
+*.dll
+
+# 测试相关
+coverage.out
+test.out
+
+# Go 模块相关
+go.mod
+go.sum
+vendor/
+
+# 日志文件夹
+logs/
+log/
+tmp/
+
+# 配置文件
+.env
+.env.*
+.env.local
+
+# IDE 和编辑器相关
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+*.sublime-project
+*.sublime-workspace
+*.pydevproject
+.project
+.settings/
+*.tmproj
+*.espresso
+*.jshint
+*.swiftr
+*.swiftd
+*.pyc
+*.pyo
+*.pyd
+*.py.class
+*.pyc
+*.pyo
+*.pyd
+*.swp
+*.swo
+*.swn
+*.swn
+*.swn
+*.swn
+*.swn
+*.swn
+*.swn
+
+# 操作系统相关
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Docker 相关
+Dockerfile
+.dockerignore
+Dockerfile.*
+docker-compose.yml
+docker-compose.override.yml
+docker-compose.*.yml
+Dockerfile.*
+Dockerfile.*
+Dockerfile.*
+
+# 其他
+**/*.log
+**/*.tmp
+**/*.bak
+**/*.swp
+**/*.lock
+**/*.db
+**/*.sqlite
+**/*.sqlite3
+**/*.tar.gz
+**/*.zip
+**/*.7z
+**/*.rar
