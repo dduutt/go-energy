@@ -7,7 +7,7 @@ import (
 )
 
 type ModbusTCP struct {
-	ID    string
+	Code  int
 	Start uint16
 	Size  uint16
 	Bytes []byte

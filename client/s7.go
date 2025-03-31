@@ -10,7 +10,7 @@ import (
 )
 
 type S7 struct {
-	Code    string
+	Code    int
 	Address string
 	Start   int
 	Size    int
@@ -70,7 +70,7 @@ func (s *S7) Read() error {
 	case "DB":
 		return s.ReadDB()
 	default:
-		return fmt.Errorf("[unknown area] %s %s", s.Code, s.Area)
+		return fmt.Errorf("[unknown area] %d %s", s.Code, s.Area)
 	}
 }
 

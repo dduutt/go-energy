@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -18,21 +19,22 @@ const (
 )
 
 type Energy struct {
-	Code           string
-	WorkShop       string
-	Room           string
-	Name           string
-	Protocol       string
-	IP             string
-	Port           int
-	SlaveOrArea    string
-	Start          int
-	Size           int
-	DataType       string
-	IsLittleEndian bool // 添加字节序配置
-	Bytes          []byte
-	Value          float64
-	Error          *string
+	Code          int
+	WorkShop      string
+	Room          string
+	Name          string
+	Protocol      string
+	IP            string
+	Port          int
+	SlaveOrArea   string
+	Start         int
+	Size          int
+	DataType      string
+	ByteOrder     string
+	Bytes         []byte
+	Value         float64
+	Magnification float64
+	Error         *string
 }
 
 type AddrGroup struct {
@@ -62,7 +64,7 @@ func (a *AddrGroup) Read() {
 				continue
 			}
 			mbc := &client.ModbusTCP{
-				ID:      m.Code,
+				Code:    m.Code,
 				Start:   uint16(m.Start),
 				Size:    uint16(m.Size),
 				SlaveId: byte(slaveId),
@@ -144,31 +146,31 @@ func (e *Energy) ParseFloat() (err error) {
 	case "float32":
 		var f float32
 		err = e.Read(&f, e.Bytes)
-		e.Value = float64(f)
+		e.Value = math.Round(float64(f)*e.Magnification*100) / 100
 	case "float64":
 		var f float64
 		err = e.Read(&f, e.Bytes)
-		e.Value = f
+		e.Value = math.Round(float64(f)*e.Magnification*100) / 100
 	case "int16":
 		var i int16
 		err = e.Read(&i, e.Bytes)
-		e.Value = float64(i)
+		e.Value = math.Round(float64(i)*e.Magnification*100) / 100
 	case "int32":
 		var i int32
 		err = e.Read(&i, e.Bytes)
-		e.Value = float64(i)
+		e.Value = math.Round(float64(i)*e.Magnification*100) / 100
 	case "int64":
 		var i int64
 		err = e.Read(&i, e.Bytes)
-		e.Value = float64(i)
+		e.Value = math.Round(float64(i)*e.Magnification*100) / 100
 	case "uint16":
 		var i uint16
 		err = e.Read(&i, e.Bytes)
-		e.Value = float64(i)
+		e.Value = math.Round(float64(i)*e.Magnification*100) / 100
 	case "uint32":
 		var i uint32
 		err = e.Read(&i, e.Bytes)
-		e.Value = float64(i)
+		e.Value = math.Round(float64(i)*e.Magnification*100) / 100
 	default:
 		err = fmt.Errorf("unknown data type: %s", e.DataType)
 	}
@@ -180,7 +182,7 @@ func (e *Energy) Read(v any, b []byte) error {
 
 	r := bytes.NewReader(b)
 	order := binary.ByteOrder(binary.BigEndian)
-	if e.IsLittleEndian {
+	if e.ByteOrder == "小端" {
 		order = binary.LittleEndian
 	}
 	return binary.Read(r, order, v)
