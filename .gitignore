@@ -100,4 +100,3 @@ Dockerfile.*
 **/*.zip
 **/*.7z
 **/*.rar
-**/*.xlsx
