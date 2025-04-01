@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"strconv"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -27,13 +26,15 @@ func main() {
 	err := Write()
 	if err != nil {
 		fmt.Println(err)
+		fmt.Println("按任意键退出")
+		fmt.Scanln()
 	}
 
 }
 
-func InputDate() ([]string, error) {
+func InputDate() (*time.Time, error) {
 	datetime := ""
-	fmt.Println("请输入日期时间(格式202503)：")
+	fmt.Println("请输入日期时间(格式202503):")
 	_, err := fmt.Scanln(&datetime)
 	if err != nil {
 		return nil, err
@@ -41,17 +42,20 @@ func InputDate() ([]string, error) {
 	if len(datetime) != 6 {
 		return nil, fmt.Errorf("输入日期时间格式错误")
 	}
-	year := datetime[:4]
-	month := datetime[4:]
-	return []string{year, month}, nil
+	t, err := time.Parse("200601", datetime)
+	if err != nil {
+		return nil, fmt.Errorf("输入日期时间格式错误:%s", datetime)
+	}
+	return &t, nil
 }
 
 func Write() error {
 	dm, err := InputDate()
 	if err != nil {
-		return fmt.Errorf("读取输入错误：%v", err)
+		return err
 	}
-	tfp := fmt.Sprintf("%s年各工段设备用电起止明细表.xlsx", dm[0])
+
+	tfp := fmt.Sprintf("%d年各工段设备用电起止明细表.xlsx", dm.Year())
 
 	em, err := GetData(dm)
 	if err != nil {
@@ -128,11 +132,8 @@ func ReadCodes(f *excelize.File) ([]string, error) {
 	return nil, fmt.Errorf("未读取到第一列数据：%v", err)
 }
 
-func GetData(ym []string) (map[string]*Energy, error) {
-	m, err := strconv.Atoi(ym[1])
-	if err != nil {
-		return nil, fmt.Errorf("月份错误：%v", err)
-	}
+func GetData(ym *time.Time) (map[string]*Energy, error) {
+	m := ym.Month()
 
 	dsn := "jldgxcx:Jldg123654.@tcp(xs.jldg.com:3306)/energy?charset=utf8mb4&parseTime=True&loc=Local"
 	db, err := sql.Open("mysql", dsn)
@@ -182,8 +183,8 @@ func GetData(ym []string) (map[string]*Energy, error) {
         ORDER BY code
     ) e;`
 
-	bt := fmt.Sprintf("%s-%s-01", ym[0], ym[1])
-	et := fmt.Sprintf("%s-%02d-01", ym[0], m+1)
+	bt := fmt.Sprintf("%d-%d-01", ym.Year(), m)
+	et := fmt.Sprintf("%d-%02d-01", ym.Year(), m+1)
 	rows, err := db.Query(query, bt, et, bt, et, bt, et, bt, et)
 	if err != nil {
 		return nil, fmt.Errorf("查询执行失败：%v", err)
