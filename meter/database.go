@@ -49,8 +49,8 @@ func InsertEnergy(energy *Energy) error {
 	query := `
 		INSERT INTO energy (
 			code, workshop, room, name, protocol, ip, port, slave_or_area, 
-			start, size, data_type,byte_order, bytes, value, magnification
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			start, size, data_type,byte_order, bytes, value, magnification,datetime
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 
 	stmt, err := db.Prepare(query)
@@ -74,6 +74,7 @@ func InsertEnergy(energy *Energy) error {
 		hex.EncodeToString(energy.Bytes),
 		energy.Value,
 		energy.Magnification,
+		time.Now().Format("2006-01-02 15:04:05"),
 	)
 	return err
 }

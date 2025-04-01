@@ -10,7 +10,6 @@
 *.class
 
 # 编译生成的文件
-bin/
 obj/
 dist/
 pkg/
@@ -101,3 +100,4 @@ Dockerfile.*
 **/*.zip
 **/*.7z
 **/*.rar
+**/*.xlsx

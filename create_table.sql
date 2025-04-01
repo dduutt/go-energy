@@ -5,6 +5,7 @@ CREATE TABLE energy (
     room VARCHAR (255),
     name VARCHAR (255),
     value DECIMAL (10,2),
+    datetime DATETIME,
     bytes VARCHAR (255),
     protocol VARCHAR (255),
     ip VARCHAR (255),
