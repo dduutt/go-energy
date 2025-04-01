@@ -133,8 +133,6 @@ func ReadCodes(f *excelize.File) ([]string, error) {
 }
 
 func GetData(ym *time.Time) (map[string]*Energy, error) {
-	m := ym.Month()
-
 	dsn := "jldgxcx:Jldg123654.@tcp(xs.jldg.com:3306)/energy?charset=utf8mb4&parseTime=True&loc=Local"
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
@@ -183,8 +181,8 @@ func GetData(ym *time.Time) (map[string]*Energy, error) {
         ORDER BY code
     ) e;`
 
-	bt := fmt.Sprintf("%d-%d-01", ym.Year(), m)
-	et := fmt.Sprintf("%d-%02d-01", ym.Year(), m+1)
+	bt := ym.Format("2006-01-02")
+	et := ym.AddDate(0, 1, 0).Format("2006-01-02")
 	rows, err := db.Query(query, bt, et, bt, et, bt, et, bt, et)
 	if err != nil {
 		return nil, fmt.Errorf("查询执行失败：%v", err)
