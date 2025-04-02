@@ -1,6 +1,7 @@
 package client
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/goburrow/modbus"
@@ -38,7 +39,11 @@ func (s *SyncModbusTCPGroup) Read() {
 		time.Sleep(s.RetryDelay)
 	}
 	if timeoutError != nil {
-		*s.Error = timeoutError.Error()
+		e := "ID|"
+		for _, mb := range s.ModbusTCPs {
+			e = fmt.Sprintf("%s%d|", e, mb.Code)
+		}
+		*s.Error = fmt.Sprintf("%s%v", e, timeoutError)
 		return
 	}
 

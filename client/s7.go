@@ -45,7 +45,11 @@ func (s *SyncS7Group) Read() {
 		time.Sleep(s.RetryDelay)
 	}
 	if timeoutError != nil {
-		*s.Error = timeoutError.Error()
+		e := "ID|"
+		for _, mb := range s.S7s {
+			e = fmt.Sprintf("%s%d|", e, mb.Code)
+		}
+		*s.Error = fmt.Sprintf("%s%v", e, timeoutError)
 		return
 	}
 	defer h.Close()
