@@ -8,12 +8,11 @@ import (
 )
 
 type ModbusTCP struct {
-	Code  int
-	Start uint16
-	Size  uint16
-	Bytes []byte
-	// SlaveId   hex
-	SlaveId byte
+	Code    int
+	SlaveId int
+	Area    string
+	Start   uint16
+	Size    uint16
 	Error   *string
 }
 

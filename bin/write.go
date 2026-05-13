@@ -57,16 +57,20 @@ func Write() error {
 
 	tfp := fmt.Sprintf("%d年各工段设备用电起止明细表.xlsx", dm.Year())
 
-	em, err := GetData(dm)
-	if err != nil {
-		return fmt.Errorf("读取数据错误：%v", err)
-	}
-
 	tmpf, err := excelize.OpenFile(tfp)
 	if err != nil {
 		return fmt.Errorf("打开文件[%s]错误：%v", tfp, err)
 	}
 	defer tmpf.Close()
+
+	dsn, err := tmpf.GetCellValue("数据库配置", "A1")
+	if err != nil {
+		return fmt.Errorf("读取数据库配置错误：%v", err)
+	}
+	em, err := GetData(dm, dsn)
+	if err != nil {
+		return fmt.Errorf("读取数据错误：%v", err)
+	}
 
 	codes, err := ReadCodes(tmpf)
 	if err != nil {
@@ -104,12 +108,12 @@ func Write() error {
 			wd[5] = e.MinValue
 			wd[6] = e.MinDate
 		}
-		cell, err := excelize.CoordinatesToCellName(1, idx+2)
-		if err != nil {
-			return fmt.Errorf("获取单元格坐标错误：%v", err)
+		cell, er := excelize.CoordinatesToCellName(1, idx+2)
+		if er != nil {
+			return fmt.Errorf("获取单元格坐标错误：%v", er)
 		}
-		if err := sw.SetRow(cell, wd, excelize.RowOpts{StyleID: styleID}); err != nil {
-			return fmt.Errorf("写入数据错误：%v", err)
+		if er := sw.SetRow(cell, wd, excelize.RowOpts{StyleID: styleID}); er != nil {
+			return fmt.Errorf("写入数据错误：%v", er)
 		}
 
 	}
@@ -132,58 +136,43 @@ func ReadCodes(f *excelize.File) ([]string, error) {
 	return nil, fmt.Errorf("未读取到第一列数据：%v", err)
 }
 
-func GetData(ym *time.Time) (map[string]*Energy, error) {
-	dsn := "jldgxcx:Jldg123654.@tcp(xs.jldg.com:3306)/energy?charset=utf8mb4&parseTime=True&loc=Local"
+func GetData(ym *time.Time, dsn string) (map[string]*Energy, error) {
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("连接数据库错误：%v", err)
 	}
 	defer db.Close()
 
-	query := `
-    SELECT 
-        e.code,
-        (SELECT name 
-         FROM energy 
-         WHERE code = e.code 
-           AND value = e.max_value 
-           AND datetime >= ?
-           AND datetime < ?
-         ORDER BY datetime DESC 
-         LIMIT 1) AS max_name,
-        e.max_value,
-        (SELECT datetime 
-         FROM energy 
-         WHERE code = e.code 
-           AND value = e.max_value 
-           AND datetime >= ?
-           AND datetime < ?
-         ORDER BY datetime DESC 
-         LIMIT 1) AS max_datetime,
-        e.min_value,
-        (SELECT datetime 
-         FROM energy 
-         WHERE code = e.code 
-           AND value = e.min_value 
-           AND datetime >= ?
-           AND datetime < ?
-         ORDER BY datetime DESC 
-         LIMIT 1) AS min_datetime
-    FROM (
-        SELECT 
-            code,
-            MAX(value) AS max_value,
-            MIN(value) AS min_value
-        FROM energy
-        WHERE datetime >= ?
-          AND datetime < ?
-        GROUP BY code
-        ORDER BY code
-    ) e;`
-
+	// bt: 本月 1 号, et: 下月 1 号
 	bt := ym.Format("2006-01-02")
 	et := ym.AddDate(0, 1, 0).Format("2006-01-02")
-	rows, err := db.Query(query, bt, et, bt, et, bt, et, bt, et)
+
+	// 方案 B：取本月第一条记录作为起始，下月第一条记录作为结束
+	query := `
+    SELECT 
+        c.code,
+        MAX(e1.name) as name,
+        COALESCE(MAX(e2.value), MAX(e1.value)) as max_value,
+        COALESCE(MAX(e2.datetime), MAX(e1.datetime)) as max_datetime,
+        MAX(e1.value) as min_value,
+        MAX(e1.datetime) as min_datetime
+    FROM (
+        SELECT code, MIN(datetime) as min_dt
+        FROM energy
+        WHERE datetime >= ? AND datetime < ?
+        GROUP BY code
+    ) c
+    INNER JOIN energy e1 ON c.code = e1.code AND c.min_dt = e1.datetime
+    LEFT JOIN (
+        SELECT code, MIN(datetime) as next_dt
+        FROM energy
+        WHERE datetime >= ?
+        GROUP BY code
+    ) n ON c.code = n.code
+    LEFT JOIN energy e2 ON n.code = e2.code AND n.next_dt = e2.datetime
+    GROUP BY c.code;`
+
+	rows, err := db.Query(query, bt, et, et)
 	if err != nil {
 		return nil, fmt.Errorf("查询执行失败：%v", err)
 	}
@@ -194,13 +183,12 @@ func GetData(ym *time.Time) (map[string]*Energy, error) {
 		var (
 			code    int
 			name    string
-			maxVal  float64 // 修复：maxVal 对应 max_value
+			maxVal  float64
 			maxDate time.Time
-			minVal  float64 // 修复：minVal 对应 min_value
+			minVal  float64
 			minDate time.Time
 		)
 
-		// 关键修复：调整参数顺序
 		if err := rows.Scan(
 			&code,
 			&name,
